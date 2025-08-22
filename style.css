@@ -1,0 +1,50 @@
+:root {
+  --primary-bg: #22223b;
+  --primary-fg: #f2e9e4;
+  --accent: #9a8c98;
+  --highlight: #c9ada7;
+  --font-main: 'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif;
+}
+
+body {
+  margin: 0;
+  background: var(--primary-bg);
+  color: var(--primary-fg);
+  font-family: var(--font-main);
+  min-height: 100vh;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#app {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+button, input, select {
+  font-family: inherit;
+  font-size: 1rem;
+  border-radius: 8px;
+  border: none;
+  padding: 0.5em 1em;
+  margin: 0.25em;
+  background: var(--accent);
+  color: var(--primary-fg);
+  transition: background 0.2s;
+  touch-action: manipulation;
+}
+button:active {
+  background: var(--highlight);
+}
+
+img {
+  max-width: 100%;
+  display: block;
+  margin: 0 auto;
+  border-radius: 8px;
+}
+
+/* TODO: Optimize layout for iPad Mini */
+/* TODO: Add smooth animations for scrolling and navigation */
+/* TODO: Style for PWA install prompt and popups */ 

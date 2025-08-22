@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#22223b">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+  <title>Manga Reader + Japanese Learning Tool</title>
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <!-- TODO: Add more icons for PWA -->
+</head>
+<body>
+  <div id="app">
+    <!-- TODO: Manga Library UI -->
+    <!-- TODO: Reader Mode UI -->
+    <!-- TODO: Japanese Reader Mode Toggle -->
+    <!-- TODO: Vocabulary List UI -->
+  </div>
+  <script src="main.js"></script>
+  <!-- Register service worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js');
+      });
+    }
+  </script>
+</body>
+</html> 
