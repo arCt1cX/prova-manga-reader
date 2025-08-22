@@ -163,23 +163,72 @@ async function renderReader() {
 }
 
 async function extractImagesFromChapter(url, site) {
-  // Use a public CORS proxy for all requests
-  const proxiedUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
-  try {
-    const resp = await fetch(proxiedUrl);
-    const html = await resp.text();
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    // Heuristic: get all images inside the main content
-    let imgs = Array.from(doc.querySelectorAll('img'));
-    // Filter out likely ads/thumbnails by size or class
-    imgs = imgs.filter(img => {
-      const w = img.width || parseInt(img.getAttribute('width')) || 0;
-      const h = img.height || parseInt(img.getAttribute('height')) || 0;
-      const src = img.src || img.getAttribute('src') || '';
-      return w > 200 && h > 200 && !/ad|banner|thumb|logo/i.test(src);
-    });
-    return imgs.map(img => img.src || img.getAttribute('src'));
-  } catch (e) {
+  if (/mangaworld\.cx/.test(url)) {
+    // MangaWorld: extract images from the main manga container
+    const proxiedUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+    try {
+      const resp = await fetch(proxiedUrl);
+      const html = await resp.text();
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      // Images are inside a container with class 'chapter-content' or similar
+      let container = doc.querySelector('.chapter-content, .container-chapter-reader, .reader-area, .chapter-container');
+      if (!container) container = doc.body;
+      let imgs = Array.from(container.querySelectorAll('img'));
+      imgs = imgs.filter(img => {
+        const src = img.src || img.getAttribute('src') || '';
+        return src && !/logo|banner|ad|thumb/i.test(src);
+      });
+      return imgs.map(img => img.src || img.getAttribute('src'));
+    } catch (e) {
+      return [];
+    }
+  } else if (/comick\.io/.test(url)) {
+    // Comick: extract image URLs from JSON in the HTML
+    const proxiedUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+    try {
+      const resp = await fetch(proxiedUrl);
+      const html = await resp.text();
+      // Look for a JSON blob containing the image URLs
+      // Comick puts image URLs in a <script> tag with type="application/ld+json" or in window.__NUXT__
+      let imageUrls = [];
+      // Try to find window.__NUXT__
+      const nuxtMatch = html.match(/window\.__NUXT__\s*=\s*(\{.*?\});/s);
+      if (nuxtMatch) {
+        try {
+          const nuxtData = JSON.parse(nuxtMatch[1]);
+          // Traverse the object to find an array of image URLs
+          // This may need to be updated if Comick changes their structure
+          let pages = null;
+          // Try common paths
+          if (nuxtData.data && Array.isArray(nuxtData.data)) {
+            for (const d of nuxtData.data) {
+              if (d && d.pages && Array.isArray(d.pages)) {
+                pages = d.pages;
+                break;
+              }
+            }
+          }
+          if (pages) {
+            imageUrls = pages.map(p => p.url || p.image || p.src).filter(Boolean);
+          }
+        } catch (e) {}
+      }
+      // Fallback: try to find <img> tags
+      if (imageUrls.length === 0) {
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        let imgs = Array.from(doc.querySelectorAll('img'));
+        imgs = imgs.filter(img => {
+          const src = img.src || img.getAttribute('src') || '';
+          return src && !/logo|banner|ad|thumb/i.test(src);
+        });
+        imageUrls = imgs.map(img => img.src || img.getAttribute('src'));
+      }
+      return imageUrls;
+    } catch (e) {
+      return [];
+    }
+  } else {
+    // Not supported
     return [];
   }
 }
