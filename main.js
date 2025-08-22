@@ -163,10 +163,10 @@ async function renderReader() {
 }
 
 async function extractImagesFromChapter(url, site) {
-  // TODO: Add site-specific logic for supported manga sites
-  // For now, try to fetch the page and extract <img> tags (may not work for all sites due to CORS)
+  // Use a public CORS proxy for all requests
+  const proxiedUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
   try {
-    const resp = await fetch(url);
+    const resp = await fetch(proxiedUrl);
     const html = await resp.text();
     const doc = new DOMParser().parseFromString(html, 'text/html');
     // Heuristic: get all images inside the main content
