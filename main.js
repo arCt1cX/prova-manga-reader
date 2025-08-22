@@ -188,30 +188,43 @@ async function extractImagesFromChapter(url, site) {
     try {
       const resp = await fetch(proxiedUrl);
       const html = await resp.text();
-      // Look for a JSON blob containing the image URLs
-      // Comick puts image URLs in a <script> tag with type="application/ld+json" or in window.__NUXT__
       let imageUrls = [];
-      // Try to find window.__NUXT__
-      const nuxtMatch = html.match(/window\.__NUXT__\s*=\s*(\{.*?\});/s);
-      if (nuxtMatch) {
+      // Try to find <script id="__NEXT_DATA__"> JSON blob
+      const nextDataMatch = html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/);
+      if (nextDataMatch) {
         try {
-          const nuxtData = JSON.parse(nuxtMatch[1]);
+          const nextData = JSON.parse(nextDataMatch[1]);
           // Traverse the object to find an array of image URLs
-          // This may need to be updated if Comick changes their structure
           let pages = null;
-          // Try common paths
-          if (nuxtData.data && Array.isArray(nuxtData.data)) {
-            for (const d of nuxtData.data) {
-              if (d && d.pages && Array.isArray(d.pages)) {
-                pages = d.pages;
-                break;
+          // Try to find pages in the JSON structure
+          if (nextData.props && nextData.props.pageProps && nextData.props.pageProps.pages) {
+            pages = nextData.props.pageProps.pages;
+          }
+          if (pages && Array.isArray(pages)) {
+            imageUrls = pages.map(p => p.url || p.image_url || p.image || p.src).filter(Boolean);
+          }
+        } catch (e) { console.log('NEXT_DATA parse error', e); }
+      }
+      // Fallback: try to find window.__NUXT__
+      if (imageUrls.length === 0) {
+        const nuxtMatch = html.match(/window\.__NUXT__\s*=\s*(\{.*?\});/s);
+        if (nuxtMatch) {
+          try {
+            const nuxtData = JSON.parse(nuxtMatch[1]);
+            let pages = null;
+            if (nuxtData.data && Array.isArray(nuxtData.data)) {
+              for (const d of nuxtData.data) {
+                if (d && d.pages && Array.isArray(d.pages)) {
+                  pages = d.pages;
+                  break;
+                }
               }
             }
-          }
-          if (pages) {
-            imageUrls = pages.map(p => p.url || p.image || p.src).filter(Boolean);
-          }
-        } catch (e) {}
+            if (pages) {
+              imageUrls = pages.map(p => p.url || p.image || p.src).filter(Boolean);
+            }
+          } catch (e) { console.log('NUXT parse error', e); }
+        }
       }
       // Fallback: try to find <img> tags
       if (imageUrls.length === 0) {
@@ -223,8 +236,12 @@ async function extractImagesFromChapter(url, site) {
         });
         imageUrls = imgs.map(img => img.src || img.getAttribute('src'));
       }
+      if (imageUrls.length === 0) {
+        console.log('No images found for Comick', {url, html});
+      }
       return imageUrls;
     } catch (e) {
+      console.log('Comick fetch/parse error', e);
       return [];
     }
   } else {
